@@ -18,6 +18,8 @@ var (
 
 // Exporter manages Prometheus metric registration and updates.
 type Exporter struct {
+	registerer prometheus.Registerer
+
 	// Per-process gauges
 	processComputeUtil *prometheus.GaugeVec
 	processMemUsed     *prometheus.GaugeVec
@@ -39,8 +41,14 @@ type Exporter struct {
 }
 
 // New creates a new Exporter with all Prometheus metrics defined.
-func New() *Exporter {
+// Optional constant labels are attached to every metric via WrapRegistererWith.
+func New(constLabels prometheus.Labels) *Exporter {
+	registerer := prometheus.Registerer(prometheus.DefaultRegisterer)
+	if len(constLabels) > 0 {
+		registerer = prometheus.WrapRegistererWith(constLabels, registerer)
+	}
 	return &Exporter{
+		registerer: registerer,
 		processComputeUtil: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "gpu_idle_process_compute_utilization_percent",
 			Help: "GPU compute (SM) utilization percentage for this process.",
@@ -88,9 +96,9 @@ func New() *Exporter {
 	}
 }
 
-// Register registers all metrics with the default Prometheus registry.
+// Register registers all metrics with the Prometheus registry.
 func (e *Exporter) Register() {
-	prometheus.MustRegister(
+	e.registerer.MustRegister(
 		e.processComputeUtil,
 		e.processMemUsed,
 		e.processIdleSecs,

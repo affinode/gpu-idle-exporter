@@ -48,9 +48,7 @@ Labels: `gpu` (index)
 ## Requirements
 
 - NVIDIA driver >= 535.113.01 (for per-process utilization via `nvmlDeviceGetProcessUtilization`)
-- Kubernetes with GPU nodes (for DaemonSet deployment)
-- `hostPID: true` on the pod (required to read per-process metrics)
-- Privileged container with access to `/dev` and NVIDIA libraries
+- Kubernetes with GPU nodes (for Kubernetes deployment)
 
 ## Quick start
 
@@ -69,13 +67,28 @@ make docker
 
 ### Deploy to Kubernetes
 
+The exporter supports three deployment modes depending on your security posture and monitoring needs:
+
+| | DaemonSet | Deployment | Sidecar |
+|---|-----------|------------|---------|
+| **Scope** | All GPU nodes | Selected nodes | Single pod |
+| **Privileges** | privileged + hostPID | privileged + hostPID | unprivileged |
+| **Process names** | Yes | Yes | No ("unknown") |
+| **Auto-scales to new nodes** | Yes | No | N/A |
+| **Use case** | Cluster monitoring | Selective monitoring | Per-workload monitoring |
+
+See the detailed guide for each mode:
+
+- **[DaemonSet](examples/daemonset/README.md)** — Recommended for cluster-wide monitoring. One pod per GPU node, automatic scheduling.
+- **[Deployment](examples/deployment/README.md)** — Node-wide monitoring without DaemonSet. Manual replica management with topology spread.
+- **[Sidecar](examples/sidecar/README.md)** — Per-workload monitoring without cluster-admin. Runs alongside your GPU container.
+
+Quick deploy (DaemonSet):
+
 ```bash
-# Review and edit deployments/k8s/daemonset.yaml first
-# (update node affinity and nvidia-lib path for your environment)
+# Review and edit examples/daemonset/daemonset.yaml first
 make deploy
 ```
-
-The DaemonSet ships with GKE-specific node affinity. See comments in `deployments/k8s/daemonset.yaml` for how to adapt to EKS, AKS, or bare-metal setups.
 
 ## Configuration
 
@@ -83,6 +96,9 @@ The DaemonSet ships with GKE-specific node affinity. See comments in `deployment
 |---------------------|---------|-------------|
 | `POLL_INTERVAL` | `5s` | How often to poll NVML (Go duration format) |
 | `HTTP_PORT` | `9835` | Port for the `/metrics` and `/healthz` endpoints |
+| `NODE_NAME` | _(unset)_ | If set, adds a `node` constant label to all metrics |
+| `POD_NAME` | _(unset)_ | If set, adds a `pod` constant label to all metrics |
+| `POD_NAMESPACE` | _(unset)_ | If set, adds a `namespace` constant label to all metrics |
 
 ## Example Prometheus queries
 
