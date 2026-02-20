@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-workload-with-exporter
+  namespace: default
+  labels:
+    app: gpu-workload
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9835"
+    prometheus.io/path: "/metrics"
+spec:
+  # Required: lets the sidecar see the main container's GPU processes via /proc
+  shareProcessNamespace: true
+
+  containers:
+  # --- Your GPU workload ---
+  - name: workload
+    image: nvidia/cuda:12.2.0-base-ubuntu22.04
+    command: ["sleep", "infinity"]  # Replace with your actual workload
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+
+  # --- GPU idle exporter sidecar ---
+  - name: gpu-idle-exporter
+    image: ghcr.io/affinode/gpu-idle-exporter:latest
+    env:
+    - name: POLL_INTERVAL
+      value: "5s"
+    - name: HTTP_PORT
+      value: "9835"
+    # nvidia-container-runtime injects NVIDIA libraries and devices when these
+    # env vars are set. No privileged mode or host volume mounts needed.
+    - name: NVIDIA_VISIBLE_DEVICES
+      value: "all"
+    - name: NVIDIA_DRIVER_CAPABILITIES
+      value: "utility"
+    # Downward API: adds pod/namespace/node as constant labels on all metrics
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+    ports:
+    - containerPort: 9835
+      name: metrics
+      protocol: TCP
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 9835
+      initialDelaySeconds: 10
+      periodSeconds: 30
+    readinessProbe:
+      httpGet:
+        path: /healthz
+        port: 9835
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+    # No privileged mode, no runAsUser: 0, no host volume mounts.
+    # The nvidia-container-runtime handles device and library access.
+
+# ---
+# Fallback: if your cluster does NOT have the nvidia-container-runtime,
+# you'll need to manually mount the NVIDIA libraries and devices.
+# Uncomment the sections below and remove the NVIDIA_VISIBLE_DEVICES /
+# NVIDIA_DRIVER_CAPABILITIES env vars from the sidecar.
+#
+#    securityContext:
+#      privileged: true
+#    volumeMounts:
+#    - name: nvidia-lib
+#      mountPath: /usr/local/nvidia/lib64
+#      readOnly: true
+#    - name: host-dev
+#      mountPath: /dev
+#
+#  volumes:
+#  - name: nvidia-lib
+#    hostPath:
+#      path: /home/kubernetes/bin/nvidia/lib64  # Adjust for your distro
+#      type: Directory
+#  - name: host-dev
+#    hostPath:
+#      path: /dev
+#      type: Directory

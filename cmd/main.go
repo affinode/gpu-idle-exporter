@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/sync/errgroup"
 
@@ -47,10 +48,22 @@ func main() {
 		}
 	}
 
+	// Build constant labels from environment (for deployment mode identification)
+	constLabels := prometheus.Labels{}
+	for _, pair := range []struct{ env, label string }{
+		{"NODE_NAME", "node"},
+		{"POD_NAME", "pod"},
+		{"POD_NAMESPACE", "namespace"},
+	} {
+		if v := os.Getenv(pair.env); v != "" {
+			constLabels[pair.label] = v
+		}
+	}
+
 	// Create components
 	coll := collector.New()
 	tracker := idle.NewTracker()
-	prom := exporter.New()
+	prom := exporter.New(constLabels)
 	prom.Register()
 
 	// Context with signal handling
