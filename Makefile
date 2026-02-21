@@ -10,7 +10,7 @@ vet:
 	go vet ./...
 
 docker:
-	docker build -t ghcr.io/affinode/gpu-idle-exporter:latest -f deployments/docker/Dockerfile .
+	docker build --platform linux/amd64 -t ghcr.io/affinode/gpu-idle-exporter:latest -f deployments/docker/Dockerfile .
 
 deploy:
 	kubectl apply -f examples/daemonset/daemonset.yaml

@@ -30,12 +30,8 @@ spec:
       value: "5s"
     - name: HTTP_PORT
       value: "9835"
-    # nvidia-container-runtime injects NVIDIA libraries and devices when these
-    # env vars are set. No privileged mode or host volume mounts needed.
-    - name: NVIDIA_VISIBLE_DEVICES
-      value: "all"
-    - name: NVIDIA_DRIVER_CAPABILITIES
-      value: "utility"
+    - name: LD_LIBRARY_PATH
+      value: "/usr/local/nvidia/lib64"
     # Downward API: adds pod/namespace/node as constant labels on all metrics
     - name: POD_NAME
       valueFrom:
@@ -72,30 +68,24 @@ spec:
       limits:
         cpu: 100m
         memory: 128Mi
-    # No privileged mode, no runAsUser: 0, no host volume mounts.
-    # The nvidia-container-runtime handles device and library access.
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: nvidia-lib
+      mountPath: /usr/local/nvidia/lib64
+      readOnly: true
+    - name: host-dev
+      mountPath: /dev
 
-# ---
-# Fallback: if your cluster does NOT have the nvidia-container-runtime,
-# you'll need to manually mount the NVIDIA libraries and devices.
-# Uncomment the sections below and remove the NVIDIA_VISIBLE_DEVICES /
-# NVIDIA_DRIVER_CAPABILITIES env vars from the sidecar.
-#
-#    securityContext:
-#      privileged: true
-#    volumeMounts:
-#    - name: nvidia-lib
-#      mountPath: /usr/local/nvidia/lib64
-#      readOnly: true
-#    - name: host-dev
-#      mountPath: /dev
-#
-#  volumes:
-#  - name: nvidia-lib
-#    hostPath:
-#      path: /home/kubernetes/bin/nvidia/lib64  # Adjust for your distro
-#      type: Directory
-#  - name: host-dev
-#    hostPath:
-#      path: /dev
-#      type: Directory
+  volumes:
+  - name: nvidia-lib
+    hostPath:
+      # GKE-specific path. Other distros may use:
+      #   /usr/lib/x86_64-linux-gnu/  (Ubuntu/Debian)
+      #   /usr/local/nvidia/lib64/    (some CUDA base images)
+      path: /home/kubernetes/bin/nvidia/lib64
+      type: Directory
+  - name: host-dev
+    hostPath:
+      path: /dev
+      type: Directory
