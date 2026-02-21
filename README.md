@@ -65,12 +65,6 @@ make docker
 # Produces: ghcr.io/affinode/gpu-idle-exporter:latest
 ```
 
-On Apple Silicon Macs, build with `--platform linux/amd64` since the binary targets amd64:
-
-```bash
-docker build --platform linux/amd64 -t ghcr.io/affinode/gpu-idle-exporter:latest -f deployments/docker/Dockerfile .
-```
-
 ### Deploy to Kubernetes
 
 The exporter can be deployed in different configurations depending on your cluster setup and monitoring needs. The [`examples/`](examples/) directory contains ready-to-use manifests for each mode:
