@@ -65,13 +65,19 @@ make docker
 # Produces: ghcr.io/affinode/gpu-idle-exporter:latest
 ```
 
+On Apple Silicon Macs, build with `--platform linux/amd64` since the binary targets amd64:
+
+```bash
+docker build --platform linux/amd64 -t ghcr.io/affinode/gpu-idle-exporter:latest -f deployments/docker/Dockerfile .
+```
+
 ### Deploy to Kubernetes
 
-The exporter can be deployed in different configurations depending on your cluster setup and security requirements. The [`examples/`](examples/) directory contains ready-to-use manifests for each mode:
+The exporter can be deployed in different configurations depending on your cluster setup and monitoring needs. The [`examples/`](examples/) directory contains ready-to-use manifests for each mode:
 
-- **[DaemonSet](examples/daemonset/)** — One pod per GPU node, cluster-wide visibility. Requires privileged access.
+- **[DaemonSet](examples/daemonset/)** — One pod per GPU node, cluster-wide visibility. Auto-schedules on new GPU nodes.
 - **[Deployment](examples/deployment/)** — Like DaemonSet but with manual replica control. Useful when DaemonSets are restricted by policy.
-- **[Sidecar](examples/sidecar/)** — Runs alongside your GPU workload. No cluster-admin needed.
+- **[Sidecar](examples/sidecar/)** — Runs alongside your GPU workload. Per-workload scoped, no cluster-wide deployment needed.
 
 Each example directory includes a README with requirements, tradeoffs, and customization instructions.
 
