@@ -67,28 +67,13 @@ make docker
 
 ### Deploy to Kubernetes
 
-The exporter supports three deployment modes depending on your security posture and monitoring needs:
+The exporter can be deployed in different configurations depending on your cluster setup and security requirements. The [`examples/`](examples/) directory contains ready-to-use manifests for each mode:
 
-| | DaemonSet | Deployment | Sidecar |
-|---|-----------|------------|---------|
-| **Scope** | All GPU nodes | Selected nodes | Single pod |
-| **Privileges** | privileged + hostPID | privileged + hostPID | unprivileged |
-| **Process names** | Yes | Yes | No ("unknown") |
-| **Auto-scales to new nodes** | Yes | No | N/A |
-| **Use case** | Cluster monitoring | Selective monitoring | Per-workload monitoring |
+- **[DaemonSet](examples/daemonset/)** — One pod per GPU node, cluster-wide visibility. Requires privileged access.
+- **[Deployment](examples/deployment/)** — Like DaemonSet but with manual replica control. Useful when DaemonSets are restricted by policy.
+- **[Sidecar](examples/sidecar/)** — Runs alongside your GPU workload. No cluster-admin needed.
 
-See the detailed guide for each mode:
-
-- **[DaemonSet](examples/daemonset/README.md)** — Recommended for cluster-wide monitoring. One pod per GPU node, automatic scheduling.
-- **[Deployment](examples/deployment/README.md)** — Node-wide monitoring without DaemonSet. Manual replica management with topology spread.
-- **[Sidecar](examples/sidecar/README.md)** — Per-workload monitoring without cluster-admin. Runs alongside your GPU container.
-
-Quick deploy (DaemonSet):
-
-```bash
-# Review and edit examples/daemonset/daemonset.yaml first
-make deploy
-```
+Each example directory includes a README with requirements, tradeoffs, and customization instructions.
 
 ## Configuration
 
