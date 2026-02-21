@@ -75,6 +75,17 @@ The exporter can be deployed in different configurations depending on your clust
 
 Each example directory includes a README with requirements, tradeoffs, and customization instructions.
 
+### Viewing metrics
+
+Once the exporter is running, port-forward to the pod and query the `/metrics` endpoint:
+
+```bash
+kubectl port-forward <pod-name> 9835:9835
+curl http://localhost:9835/metrics | grep gpu_idle
+```
+
+The `/healthz` endpoint returns `ok` and can be used to verify the exporter is up.
+
 ## Configuration
 
 | Environment variable | Default | Description |
